@@ -1,53 +1,20 @@
 #!/usr/bin/node
-// Prints all characters of a Star Wars movie
-const request = require('request');
+const util = require('util');
+const request = util.promisify(require('request'));
+const filmID = process.argv[2];
 
-if (process.argv.length !== 3) {
-  console.error('Usage: node 0-starwars_characters.js <Movie ID>');
-  process.exit(1);
+async function starwarsCharacters (filmId) {
+  const endpoint = 'https://swapi-api.hbtn.io/api/films/' + filmId;
+  let response = await (await request(endpoint)).body;
+  response = JSON.parse(response);
+  const characters = response.characters;
+
+  for (let i = 0; i < characters.length; i++) {
+    const urlCharacter = characters[i];
+    let character = await (await request(urlCharacter)).body;
+    character = JSON.parse(character);
+    console.log(character.name);
+  }
 }
 
-const movieId = process.argv[2];
-
-const apiUrl = `https://swapi.dev/api/films/${movieId}/`;
-
-request(apiUrl, (error, response, body) => {
-  if (error) {
-    console.error('Error:', error);
-    process.exit(1);
-  }
-
-  if (response.statusCode !== 200) {
-    console.error('Unexpected status code:', response.statusCode);
-    process.exit(1);
-  }
-
-  const filmData = JSON.parse(body);
-  const characters = filmData.characters;
-
-  if (!characters || characters.length === 0) {
-    console.log('No characters found for this movie.');
-    process.exit(0);
-  }
-
-  characters.forEach((characterUrl) => {
-    request(characterUrl, (error, response, body) => {
-      if (error) {
-        console.error('Error:', error);
-        process.exit(0);
-      }
-
-      if (response.statusCode !== 200) {
-        console.error('Unexpected status code:', response.statusCode);
-        process.exit(1);
-      }
-
-      const characterData = JSON.parse(body);
-      console.log(characterData.name);
-
-      if (characterUrl === characters[characters.length - 1]) {
-        process.exit(0);
-      }
-    });
-  });
-});
+starwarsCharacters(filmID);
